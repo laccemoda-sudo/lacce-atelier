@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de tiendas — LACCE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --ink:#120F0C;--ink-soft:#1C1712;--ink-line:#2B241C;
+  --bone:#F3ECDC;--bone-dim:#C9BFA9;--thread:#C9A467;--ok:#7BA37B;--pending:#C97C67;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ink);color:var(--bone);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:600;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:var(--thread);}
+input,select,button,textarea{font-family:'Jost',sans-serif;}
+input,select,textarea{
+  background:var(--ink-soft);border:1px solid var(--ink-line);color:var(--bone);
+  padding:11px 14px;border-radius:2px;font-size:14px;width:100%;
+}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--thread);}
+button{
+  background:var(--thread);color:var(--ink);border:none;padding:12px 22px;
+  font-size:13px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:500;
+}
+button.ghost{background:transparent;border:1px solid var(--thread);color:var(--thread);}
+button:disabled{opacity:.5;cursor:default;}
+.hide{display:none !important;}
+
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-box{max-width:380px;width:100%;}
+.login-box h1{font-size:32px;margin-bottom:6px;}
+.login-box p{color:var(--bone-dim);font-size:14px;margin-bottom:28px;}
+.login-box label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim);display:block;margin-bottom:6px;}
+.field{margin-bottom:16px;}
+#loginError{color:var(--pending);font-size:13px;margin-top:10px;min-height:18px;}
+
+/* APP SHELL */
+#app{max-width:1000px;margin:0 auto;padding:32px 24px 80px;}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--ink-line);}
+.topbar .store{font-size:22px;}
+.topbar .role{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--thread);letter-spacing:.08em;text-transform:uppercase;}
+.topbar-actions{display:flex;gap:12px;align-items:center;}
+
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink-line);border:1px solid var(--ink-line);margin-bottom:40px;}
+.summary div{background:var(--ink-soft);padding:22px;}
+.summary .num{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--thread);}
+.summary .lbl{font-size:12px;color:var(--bone-dim);margin-top:4px;}
+
+.section{margin-bottom:48px;}
+.section h2{font-size:22px;margin-bottom:18px;}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--bone-dim);padding:10px 12px;border-bottom:1px solid var(--ink-line);}
+td{padding:12px;border-bottom:1px solid var(--ink-line);}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:3px 9px;border-radius:2px;letter-spacing:.04em;}
+.badge.pagada{background:rgba(123,163,123,.15);color:var(--ok);}
+.badge.pendiente{background:rgba(201,124,103,.15);color:var(--pending);}
+
+.card{background:var(--ink-soft);border:1px solid var(--ink-line);padding:22px;margin-bottom:14px;border-radius:2px;}
+.order-items{display:flex;flex-direction:column;gap:6px;margin:12px 0;}
+.order-item-row{display:grid;grid-template-columns:1fr 90px 100px 30px;gap:10px;}
+.order-total{text-align:right;font-family:'JetBrains Mono',monospace;color:var(--thread);margin-top:10px;font-size:14px;}
+
+select.store-select{max-width:280px;}
+
+/* CATÁLOGO dentro del portal */
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.cat-card{border:1px solid var(--ink-line);background:var(--ink-soft);overflow:hidden;}
+.cat-card img{width:100%;height:480px;object-fit:cover;object-position:center 22%;display:block;}
+.cat-card.shoe img{height:220px;object-position:center;}
+.cat-card .cat-info{padding:12px 14px;}
+.cat-card .cat-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--thread);letter-spacing:.06em;text-transform:uppercase;}
+.cat-card h4{font-family:'Cormorant Garamond',serif;font-size:18px;margin-top:4px;font-weight:600;}
+.cat-group-title{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim);margin:28px 0 14px;}
+.cat-group-title:first-child{margin-top:0;}
+@media(max-width:900px){.cat-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.cat-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box" id="loginBox">
+    <h1>LACCE · Portal</h1>
+    <p>Acceso privado para tiendas y showroom.</p>
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+    <button id="loginBtn" style="width:100%;">Entrar</button>
+    <p id="loginError"></p>
+    <p style="margin-top:18px;font-size:13px;color:var(--bone-dim);">
+      ¿Eres una tienda nueva? <a href="#" id="showSignup" style="color:var(--thread);">Solicita tu acceso aquí</a>
+    </p>
+  </div>
+
+  <div class="login-box hide" id="signupBox">
+    <h1>Solicitud de distribuidor</h1>
+    <p>Rellena estos datos. Un miembro del equipo LACCE revisará tu solicitud antes de darte acceso a precios y pedidos.</p>
+    <div class="field"><label>Nombre de la tienda / empresa</label><input id="suStoreName"></div>
+    <div class="field"><label>CIF / NIF</label><input id="suCif"></div>
+    <div class="field"><label>Nombre de contacto</label><input id="suContact"></div>
+    <div class="field"><label>Teléfono</label><input id="suPhone" type="tel"></div>
+    <div class="field"><label>Email</label><input id="suEmail" type="email" autocomplete="username"></div>
+    <div class="field"><label>Contraseña</label><input id="suPass" type="password" autocomplete="new-password"></div>
+    <button id="signupBtn" style="width:100%;">Enviar solicitud</button>
+    <p id="signupError"></p>
+    <p style="margin-top:18px;font-size:13px;color:var(--bone-dim);">
+      ¿Ya tienes cuenta? <a href="#" id="showLogin" style="color:var(--thread);">Entrar</a>
+    </p>
+  </div>
+
+  <div class="login-box hide" id="pendingBox" style="text-align:center;">
+    <h1>Solicitud en revisión</h1>
+    <p style="margin-bottom:0;">Tu cuenta de boutique está en proceso de revisión. Te avisaremos en cuanto el equipo de LACCE la active y puedas ver precios y hacer pedidos.</p>
+    <button class="ghost" id="pendingLogoutBtn" style="width:100%;margin-top:22px;">Salir</button>
+  </div>
+
+  <div class="login-box hide" id="suspendedBox" style="text-align:center;">
+    <h1>Acceso suspendido</h1>
+    <p style="margin-bottom:0;">Tu cuenta está temporalmente suspendida. Contacta con LACCE para más información.</p>
+    <button class="ghost" id="suspendedLogoutBtn" style="width:100%;margin-top:22px;">Salir</button>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <div class="topbar">
+    <div>
+      <div class="store" id="storeName">—</div>
+      <div class="role" id="roleLabel">tienda</div>
+    </div>
+    <div class="topbar-actions">
+      <select id="adminStoreSwitch" class="store-select hide"></select>
+      <button class="ghost" id="logoutBtn">Salir</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div><div class="num mono" id="sumOrders">0</div><div class="lbl">Pedidos totales</div></div>
+    <div><div class="num mono" id="sumPending">0€</div><div class="lbl">Pendiente de pago</div></div>
+    <div><div class="num mono" id="sumPaid">0€</div><div class="lbl">Pagado hasta hoy</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Catálogo completo</h2>
+    <p style="color:var(--bone-dim);font-size:13.5px;margin-bottom:20px;">Todas las referencias activas. Escribe el nombre exacto en "Nuevo pedido" para pedir.</p>
+
+    <p class="cat-group-title">Velos &amp; mantillas — LACCE</p>
+    <div class="cat-grid" id="catVelos"></div>
+
+    <p class="cat-group-title">Fiesta — Selene Couture</p>
+    <div class="cat-grid" id="catFiesta"></div>
+
+    <p class="cat-group-title">Calzado — Gaspara</p>
+    <div class="cat-grid" id="catCalzado"></div>
+  </div>
+
+  <div class="section">
+    <h2>Nuevo pedido</h2>
+    <div class="card">
+      <div id="newOrderItems" class="order-items">
+        <div class="order-item-row">
+          <input placeholder="Referencia / producto" class="item-name">
+          <input placeholder="Uds." type="number" min="1" value="1" class="item-qty">
+          <input placeholder="Precio ud. €" type="number" min="0" step="0.01" class="item-price">
+          <span></span>
+        </div>
+      </div>
+      <button class="ghost" id="addLineBtn" style="margin-right:10px;">+ Añadir línea</button>
+      <button id="submitOrderBtn">Enviar pedido</button>
+      <p id="orderMsg" style="margin-top:10px;font-size:13px;color:var(--bone-dim);"></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Historial de pedidos</h2>
+    <table>
+      <thead><tr><th>Fecha</th><th>Detalle</th><th>Estado</th><th>Total</th></tr></thead>
+      <tbody id="ordersBody"><tr><td colspan="4" class="mono" style="color:var(--bone-dim);">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Facturas</h2>
+    <table>
+      <thead><tr><th>Fecha</th><th>Importe</th><th>Estado</th><th id="invoiceActionHead"></th></tr></thead>
+      <tbody id="invoicesBody"><tr><td colspan="4" class="mono" style="color:var(--bone-dim);">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section hide" id="adminRequests">
+    <h2>Solicitudes de acceso</h2>
+    <table>
+      <thead><tr><th>Tienda</th><th>CIF/NIF</th><th>Contacto</th><th>Teléfono</th><th>Acción</th></tr></thead>
+      <tbody id="requestsBody"><tr><td colspan="5" class="mono" style="color:var(--bone-dim);">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section hide" id="adminStores">
+    <h2>Todas las tiendas</h2>
+    <table>
+      <thead><tr><th>Tienda</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody id="storesBody"><tr><td colspan="3" class="mono" style="color:var(--bone-dim);">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section hide" id="adminAddInvoice">
+    <h2>Añadir factura manual (admin)</h2>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <input id="invAmount" type="number" step="0.01" placeholder="Importe €">
+        <input id="invNotes" placeholder="Nota (opcional)">
+      </div>
+      <button id="addInvoiceBtn">Crear factura para esta tienda</button>
+    </div>
+  </div>
+
+  <div class="section hide" id="adminAddProduct">
+    <h2>Añadir producto al catálogo (admin)</h2>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <select id="prodCategory">
+          <option value="velos">Velos</option>
+          <option value="fiesta">Fiesta — Selene Couture</option>
+          <option value="calzado">Calzado — Gaspara</option>
+        </select>
+        <input id="prodName" placeholder="Nombre (ej. Aurelia)">
+      </div>
+      <div style="margin-bottom:12px;">
+        <input id="prodFeature" placeholder="Línea corta (ej. Corsé de pedrería · escote strapless)">
+      </div>
+      <div style="margin-bottom:12px;">
+        <textarea id="prodDesc" rows="2" placeholder="Descripción"></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <input id="prodImage" type="file" accept="image/*">
+      </div>
+      <button id="addProductBtn">Subir producto</button>
+      <p id="prodMsg" style="margin-top:10px;font-size:13px;color:var(--bone-dim);"></p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ======================================================
+// CONFIGURA ESTO con tus datos de Supabase (Project Settings → API)
+// ======================================================
+const SUPABASE_URL = "https://yqiipbvaqcdcoinkffwf.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Yim3cs68LDQs8pYZk7V5Ww_S11jwuHWC";
+// ======================================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentProfile = null;
+let isAdmin = false;
+let viewingStoreId = null; // qué tienda estamos viendo (admin puede cambiar)
+let allStores = [];
+
+const el = id => document.getElementById(id);
+const eur = n => (Number(n)||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+
+// ---------- CAMBIO ENTRE LOGIN / REGISTRO ----------
+el('showSignup').addEventListener('click', (e) => { e.preventDefault(); el('loginBox').classList.add('hide'); el('signupBox').classList.remove('hide'); });
+el('showLogin').addEventListener('click', (e) => { e.preventDefault(); el('signupBox').classList.add('hide'); el('loginBox').classList.remove('hide'); });
+
+// ---------- LOGIN ----------
+el('loginBtn').addEventListener('click', async () => {
+  el('loginError').textContent = '';
+  const email = el('loginEmail').value.trim();
+  const password = el('loginPass').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    let friendly = 'Error de Supabase: ' + error.message;
+    if (error.message.includes('Invalid login credentials')) friendly = 'Email o contraseña incorrectos.';
+    else if (error.message.includes('Email not confirmed')) friendly = 'Este usuario todavía no ha confirmado el email. En Supabase → Authentication → Providers → Email, desactiva "Confirm email" para evitar este paso.';
+    el('loginError').textContent = friendly;
+    return;
+  }
+  await afterLogin();
+});
+
+// ---------- REGISTRO (autoservicio, queda en estado "pending") ----------
+el('signupBtn').addEventListener('click', async () => {
+  el('signupError').textContent = '';
+  const store_name = el('suStoreName').value.trim();
+  const cif_nif = el('suCif').value.trim();
+  const contact_name = el('suContact').value.trim();
+  const phone = el('suPhone').value.trim();
+  const email = el('suEmail').value.trim();
+  const password = el('suPass').value;
+
+  if (!store_name || !email || !password) { el('signupError').textContent = 'Rellena al menos tienda, email y contraseña.'; return; }
+
+  const { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
+  if (signUpError) { el('signupError').textContent = 'Error al registrarse: ' + signUpError.message; return; }
+
+  const userId = signUpData.user?.id;
+  if (!userId) {
+    el('signupError').textContent = 'Registro recibido, pero falta confirmar el email. Revisa la bandeja de entrada, o desactiva "Confirm email" en Supabase → Authentication → Providers → Email.';
+    return;
+  }
+
+  const { error: profileInsertError } = await sb.from('profiles').insert({
+    id: userId, store_name, cif_nif, contact_name, phone,
+    is_admin: false, status: 'pending'
+  });
+  if (profileInsertError) { el('signupError').textContent = 'Usuario creado, pero falló al guardar el perfil: ' + profileInsertError.message; return; }
+
+  // Aviso al admin (no bloqueante: si falla, la solicitud ya quedó guardada igualmente)
+  try {
+    await fetch('/.netlify/functions/notify-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ store_name, cif_nif, contact_name, phone, email })
+    });
+  } catch (e) {}
+
+  await afterLogin();
+});
+
+el('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+el('pendingLogoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+el('suspendedLogoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+async function afterLogin(){
+  const { data: { user } } = await sb.auth.getUser();
+  currentUser = user;
+  const { data: profile, error: profileError } = await sb.from('profiles').select('*').eq('id', user.id).single();
+
+  if (profileError || !profile) {
+    el('loginError').textContent = 'Tu usuario existe en Authentication pero no tiene fila en la tabla "profiles". Ve a Supabase → Table Editor → profiles → Insert row, con id = ' + user.id + ', store_name = tu nombre, is_admin = true (si eres tú) o false (si es una tienda).';
+    await sb.auth.signOut();
+    return;
+  }
+
+  currentProfile = profile;
+  isAdmin = !!profile?.is_admin;
+  viewingStoreId = user.id;
+
+  // Admin siempre entra directo, sin pasar por el filtro de estado
+  if (!isAdmin && profile?.status === 'pending') {
+    ['loginBox','signupBox','suspendedBox'].forEach(id => el(id).classList.add('hide'));
+    el('pendingBox').classList.remove('hide');
+    return;
+  }
+  if (!isAdmin && profile?.status === 'suspended') {
+    ['loginBox','signupBox','pendingBox'].forEach(id => el(id).classList.add('hide'));
+    el('suspendedBox').classList.remove('hide');
+    return;
+  }
+
+  el('loginScreen').classList.add('hide');
+  el('app').classList.remove('hide');
+  el('storeName').textContent = profile?.store_name || 'Tienda';
+  el('roleLabel').textContent = isAdmin ? 'admin · lacce' : 'tienda';
+
+  if (isAdmin) {
+    el('adminAddInvoice').classList.remove('hide');
+    el('adminAddProduct').classList.remove('hide');
+    el('adminRequests').classList.remove('hide');
+    el('adminStores').classList.remove('hide');
+    el('adminStoreSwitch').classList.remove('hide');
+    await loadAllStoresForAdmin();
+    await loadRequestsAndStores();
+  }
+
+  await loadData();
+}
+
+async function loadAllStoresForAdmin(){
+  const { data } = await sb.from('profiles').select('*').eq('is_admin', false).order('store_name');
+  allStores = data || [];
+  const sel = el('adminStoreSwitch');
+  sel.innerHTML = allStores.map(s => `<option value="${s.id}">${s.store_name}</option>`).join('');
+  if (allStores.length) viewingStoreId = allStores[0].id;
+  sel.addEventListener('change', async () => { viewingStoreId = sel.value; await loadData(); });
+}
+
+// ---------- SOLICITUDES PENDIENTES + GESTIÓN DE ESTADO (admin) ----------
+async function loadRequestsAndStores(){
+  const { data } = await sb.from('profiles').select('*').eq('is_admin', false).order('created_at', {ascending:false});
+  const all = data || [];
+
+  const pending = all.filter(s => s.status === 'pending');
+  el('requestsBody').innerHTML = pending.length ? pending.map(s => `
+    <tr>
+      <td>${s.store_name || '—'}</td>
+      <td class="mono">${s.cif_nif || '—'}</td>
+      <td>${s.contact_name || '—'}</td>
+      <td class="mono">${s.phone || '—'}</td>
+      <td><button class="approve-btn" data-id="${s.id}">Aprobar</button></td>
+    </tr>
+  `).join('') : `<tr><td colspan="5" class="mono" style="color:var(--bone-dim);">Sin solicitudes pendientes.</td></tr>`;
+
+  el('storesBody').innerHTML = all.length ? all.map(s => `
+    <tr>
+      <td>${s.store_name || '—'}</td>
+      <td><span class="badge ${s.status === 'approved' ? 'pagada' : 'pendiente'}">${s.status}</span></td>
+      <td>
+        ${s.status !== 'suspended' ? `<button class="ghost suspend-btn" data-id="${s.id}">Suspender</button>` : ''}
+        ${s.status === 'suspended' ? `<button class="reactivate-btn" data-id="${s.id}">Reactivar</button>` : ''}
+      </td>
+    </tr>
+  `).join('') : `<tr><td colspan="3" class="mono" style="color:var(--bone-dim);">Sin tiendas todavía.</td></tr>`;
+
+  document.querySelectorAll('.approve-btn').forEach(btn => btn.addEventListener('click', async () => {
+    await sb.from('profiles').update({ status: 'approved' }).eq('id', btn.dataset.id);
+    await loadAllStoresForAdmin(); await loadRequestsAndStores();
+  }));
+  document.querySelectorAll('.suspend-btn').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('¿Suspender el acceso de esta tienda? (por ejemplo, por facturas impagadas)')) return;
+    await sb.from('profiles').update({ status: 'suspended' }).eq('id', btn.dataset.id);
+    await loadAllStoresForAdmin(); await loadRequestsAndStores();
+  }));
+  document.querySelectorAll('.reactivate-btn').forEach(btn => btn.addEventListener('click', async () => {
+    await sb.from('profiles').update({ status: 'approved' }).eq('id', btn.dataset.id);
+    await loadAllStoresForAdmin(); await loadRequestsAndStores();
+  }));
+}
+
+// ---------- CARGA DE DATOS ----------
+async function loadData(){
+  const storeId = viewingStoreId;
+
+  const { data: orders } = await sb.from('orders').select('*, order_items(*)').eq('store_id', storeId).order('created_at', {ascending:false});
+  const { data: invoices } = await sb.from('invoices').select('*').eq('store_id', storeId).order('created_at', {ascending:false});
+
+  renderOrders(orders || []);
+  renderInvoices(invoices || []);
+  renderSummary(orders || [], invoices || []);
+}
+
+function renderSummary(orders, invoices){
+  el('sumOrders').textContent = orders.length;
+  const pending = invoices.filter(i=>i.status==='pendiente').reduce((s,i)=>s+Number(i.amount),0);
+  const paid = invoices.filter(i=>i.status==='pagada').reduce((s,i)=>s+Number(i.amount),0);
+  el('sumPending').textContent = eur(pending);
+  el('sumPaid').textContent = eur(paid);
+}
+
+function renderOrders(orders){
+  const body = el('ordersBody');
+  if (!orders.length){ body.innerHTML = '<tr><td colspan="4" class="mono" style="color:var(--bone-dim);">Sin pedidos todavía.</td></tr>'; return; }
+  body.innerHTML = orders.map(o => {
+    const items = o.order_items || [];
+    const total = items.reduce((s,it)=>s+it.quantity*it.unit_price,0);
+    const detail = items.map(it=>`${it.quantity}× ${it.product_name}`).join(', ');
+    return `<tr>
+      <td class="mono">${new Date(o.created_at).toLocaleDateString('es-ES')}</td>
+      <td>${detail || '—'}</td>
+      <td><span class="badge pendiente">${o.status}</span></td>
+      <td class="mono">${eur(total)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInvoices(invoices){
+  const body = el('invoicesBody');
+  el('invoiceActionHead').textContent = isAdmin ? 'Acción' : '';
+  if (!invoices.length){ body.innerHTML = '<tr><td colspan="4" class="mono" style="color:var(--bone-dim);">Sin facturas todavía.</td></tr>'; return; }
+  body.innerHTML = invoices.map(inv => `
+    <tr>
+      <td class="mono">${new Date(inv.created_at).toLocaleDateString('es-ES')}</td>
+      <td class="mono">${eur(inv.amount)}</td>
+      <td><span class="badge ${inv.status}">${inv.status}</span></td>
+      <td>${isAdmin && inv.status==='pendiente' ? `<button class="ghost mark-paid" data-id="${inv.id}">Marcar pagada</button>` : ''}</td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('.mark-paid').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      await sb.from('invoices').update({ status:'pagada', paid_at: new Date().toISOString() }).eq('id', id);
+      await loadData();
+    });
+  });
+}
+
+// ---------- NUEVO PEDIDO ----------
+el('addLineBtn').addEventListener('click', () => {
+  const row = document.createElement('div');
+  row.className = 'order-item-row';
+  row.innerHTML = `
+    <input placeholder="Referencia / producto" class="item-name">
+    <input placeholder="Uds." type="number" min="1" value="1" class="item-qty">
+    <input placeholder="Precio ud. €" type="number" min="0" step="0.01" class="item-price">
+    <button class="ghost remove-line" style="padding:6px 10px;">×</button>`;
+  el('newOrderItems').appendChild(row);
+  row.querySelector('.remove-line').addEventListener('click', () => row.remove());
+});
+
+el('submitOrderBtn').addEventListener('click', async () => {
+  const rows = [...el('newOrderItems').querySelectorAll('.order-item-row')];
+  const items = rows.map(r => ({
+    product_name: r.querySelector('.item-name').value.trim(),
+    quantity: Number(r.querySelector('.item-qty').value) || 1,
+    unit_price: Number(r.querySelector('.item-price').value) || 0
+  })).filter(i => i.product_name);
+
+  if (!items.length){ el('orderMsg').textContent = 'Añade al menos una referencia.'; return; }
+
+  const storeId = isAdmin ? viewingStoreId : currentUser.id;
+  const { data: order, error } = await sb.from('orders').insert({ store_id: storeId, status:'pendiente' }).select().single();
+  if (error){ el('orderMsg').textContent = 'Error al crear el pedido.'; return; }
+
+  const rowsToInsert = items.map(i => ({ ...i, order_id: order.id }));
+  await sb.from('order_items').insert(rowsToInsert);
+
+  el('orderMsg').textContent = 'Pedido enviado correctamente.';
+  el('newOrderItems').innerHTML = `<div class="order-item-row"><input placeholder="Referencia / producto" class="item-name"><input placeholder="Uds." type="number" min="1" value="1" class="item-qty"><input placeholder="Precio ud. €" type="number" min="0" step="0.01" class="item-price"><span></span></div>`;
+  await loadData();
+});
+
+// ---------- FACTURA MANUAL (ADMIN) ----------
+el('addInvoiceBtn')?.addEventListener('click', async () => {
+  const amount = Number(el('invAmount').value);
+  const notes = el('invNotes').value.trim();
+  if (!amount){ return; }
+  await sb.from('invoices').insert({ store_id: viewingStoreId, amount, notes, status:'pendiente' });
+  el('invAmount').value = ''; el('invNotes').value = '';
+  await loadData();
+});
+
+// ---------- SESIÓN EXISTENTE ----------
+sb.auth.getSession().then(({ data: { session } }) => { if (session) afterLogin(); });
+
+// ============================================================
+// CATÁLOGO — se lee directamente de la base de datos (tabla products)
+// ============================================================
+async function loadCatalog(){
+  const { data, error } = await sb.from('products').select('*').eq('active', true).order('created_at');
+  const items = data || [];
+  renderCatalogGroup(items.filter(p => p.category === 'velos'), 'catVelos');
+  renderCatalogGroup(items.filter(p => p.category === 'fiesta'), 'catFiesta');
+  renderCatalogGroup(items.filter(p => p.category === 'calzado'), 'catCalzado', 'shoe');
+}
+
+function renderCatalogGroup(items, elId, extraClass){
+  if (!items.length){
+    document.getElementById(elId).innerHTML = `<p style="color:var(--bone-dim);font-size:13px;">Todavía no hay referencias en esta categoría.</p>`;
+    return;
+  }
+  document.getElementById(elId).innerHTML = items.map(it => `
+    <div class="cat-card ${extraClass || ''}">
+      ${it.image_url
+        ? `<img src="${it.image_url}" alt="${it.name}">`
+        : `<div style="height:200px;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:52px;color:var(--ink-line);-webkit-text-stroke:1px var(--thread);">${(it.name||'?')[0]}</div>`
+      }
+      <div class="cat-info"><p class="cat-tag">${it.category}</p><h4>${it.name}</h4></div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// SUBIR PRODUCTO NUEVO (solo admin) — foto + datos
+// ============================================================
+el('addProductBtn')?.addEventListener('click', async () => {
+  const category = el('prodCategory').value;
+  const name = el('prodName').value.trim();
+  const feature = el('prodFeature').value.trim();
+  const description = el('prodDesc').value.trim();
+  const file = el('prodImage').files[0];
+
+  if (!name){ el('prodMsg').textContent = 'Ponle un nombre al producto.'; return; }
+
+  el('prodMsg').textContent = 'Subiendo…';
+  let image_url = null;
+
+  if (file){
+    const path = `${category}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await sb.storage.from('product-images').upload(path, file);
+    if (uploadError){ el('prodMsg').textContent = 'Error subiendo la foto: ' + uploadError.message; return; }
+    const { data: pub } = sb.storage.from('product-images').getPublicUrl(path);
+    image_url = pub.publicUrl;
+  }
+
+  const { error } = await sb.from('products').insert({ category, name, feature, description, image_url });
+  if (error){ el('prodMsg').textContent = 'Error al guardar: ' + error.message; return; }
+
+  el('prodMsg').textContent = 'Producto añadido correctamente.';
+  el('prodName').value = ''; el('prodFeature').value = ''; el('prodDesc').value = ''; el('prodImage').value = '';
+  await loadCatalog();
+});
+
+loadCatalog();
+</script>
+</body>
+</html>
